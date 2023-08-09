@@ -3,10 +3,10 @@ from langchain import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.output_parsers import PydanticOutputParser, EnumOutputParser
-from langchain.chains import LLMChain
+from langchain.chains import LLMChain, SequentialChain
 from langchain.text_splitter import MarkdownHeaderTextSplitter
 from pydantic import BaseModel
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Generator
 
 
 class Skills(BaseModel):
@@ -50,35 +50,6 @@ def chunk_markdown(resume: str) -> List[Document]:
     return md_spitter.split_text(resume)
 
 
-def emulate_section_wording(title: str, desc: str, section: str) -> str:
-    """ Improve resume section by copying wording and grammatical syntax between sections
-
-    :param title: job title to emulate
-    :param desc: description to emulate
-    :param section: resume section to improve
-
-    :return: improved resume section str. Section may be returned have different formatting.
-    """
-    prompt = PromptTemplate.from_template("""
-        You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
-        Please improve this resume section for this {title} position.
-        Improve the section by matching grammatical syntax and lexicon.
-        
-        This is the job description:\n\n{desc}.
-        \n\n
-        Here is the resume section:\n{section}
-    """)
-
-    grammatical_chain = LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=.85, model_name="gpt-3.5-turbo"))
-    return grammatical_chain.predict(title=title, desc=desc, section=section)
-
-
-class ResumeModel(BaseModel):
-    summary: Optional[str] = None
-    history: Optional[str] = None
-    other: Optional[str] = None
-
-
 def cut_sections(resume: str) -> dict:
     """ Get overview / summary of resume """
     prompt = PromptTemplate.from_template("""
@@ -96,3 +67,45 @@ def cut_sections(resume: str) -> dict:
         resume_model[key]['result'] = classify_chain.predict(resume=resume,
                                                              section_name=resume_model[key]['section_name'])
     return resume_model
+
+
+def process_history_chain() -> SequentialChain:
+    # chain emulate section wording and grammar
+    gram_prompt = PromptTemplate.from_template("""
+        You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
+        Please improve this resume section for this {title} position.\n
+        Improve the section by matching grammatical syntax and lexicon.
+
+        This is the job description:\n\n{desc}.
+        \n\n
+        Here is the resume section:\n{section}
+    """)
+    grammatical_chain = LLMChain(prompt=gram_prompt,
+                                 llm=ChatOpenAI(temperature=.85, model_name="gpt-3.5-turbo"),
+                                 output_key="emulated"
+                                 )
+
+    # chain to format section as markdown
+    format_prompt = PromptTemplate.from_template("""
+    May you please reformat the following experience from a resume using the following format:
+
+    ```
+    ## Job Title, Company, Dates (Total time)
+
+        experience description
+        
+        - bullet points
+    ```
+
+    Here is experience text:
+    \n{emulated}
+    """)
+    format_chain = LLMChain(prompt=format_prompt,
+                            llm=ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo"),
+                            output_key="formatted")
+
+    return SequentialChain(
+        chains=[grammatical_chain, format_chain],
+        input_variables=["title", "desc", "section"],
+        output_variables=["formatted"],
+        verbose=True,)
