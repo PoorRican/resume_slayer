@@ -1,4 +1,4 @@
 langchain
 openai
 jupyter
-pydantic==2.1.1
+pydantic==1.10.12
