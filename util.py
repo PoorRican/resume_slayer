@@ -1,11 +1,12 @@
+from enum import Enum
 from langchain import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
-from langchain.output_parsers import PydanticOutputParser
+from langchain.output_parsers import PydanticOutputParser, EnumOutputParser
 from langchain.chains import LLMChain
 from langchain.text_splitter import MarkdownHeaderTextSplitter
 from pydantic import BaseModel
-from typing import List
+from typing import List, Union, Optional
 
 
 class Skills(BaseModel):
@@ -30,7 +31,7 @@ def list_job_requirements(description: str) -> List[str]:
     return parser.parse(chain.predict(description=description))
 
 
-def chunk_resume(resume: str) -> List[Document]:
+def chunk_markdown(resume: str) -> List[Document]:
     """ Split a resume formatted in markdown.
 
     Sections are split by header
@@ -70,3 +71,28 @@ def emulate_section_wording(title: str, desc: str, section: str) -> str:
 
     grammatical_chain = LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=.85, model_name="gpt-3.5-turbo"))
     return grammatical_chain.predict(title=title, desc=desc, section=section)
+
+
+class ResumeModel(BaseModel):
+    summary: Optional[str] = None
+    history: Optional[str] = None
+    other: Optional[str] = None
+
+
+def cut_sections(resume: str) -> dict:
+    """ Get overview / summary of resume """
+    prompt = PromptTemplate.from_template("""
+    May you return only the {section_name} section of this resume?
+    
+    {resume}
+    """)
+
+    resume_model = {'summary': {'section_name': 'resume summary',
+                                'result': ''},
+                    'history': {'section_name': 'job history / experience',
+                                'result': ''}}
+    classify_chain = LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo"))
+    for key in resume_model.keys():
+        resume_model[key]['result'] = classify_chain.predict(resume=resume,
+                                                             section_name=resume_model[key]['section_name'])
+    return resume_model
