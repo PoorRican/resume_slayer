@@ -21,12 +21,12 @@ def job_requirement_chain() -> LLMChain:
     prompt = PromptTemplate(template="""
         You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
         Please list the skills and requirements for this job.\n{format_instructions}
-        Here is the job description:\n{description}
+        Here is the job description:\n{desc}
     """,
-                            input_variables=["description"],
+                            input_variables=["desc"],
                             partial_variables={'format_instructions': format_instructions})
     llm = ChatOpenAI(temperature=0, model_name='gpt-3.5-turbo')
-    return LLMChain(prompt=prompt, llm=llm, output_parser=parser)
+    return LLMChain(prompt=prompt, llm=llm, output_parser=parser, output_key='requirements')
 
 
 def chunk_markdown(resume: str) -> List[Document]:
