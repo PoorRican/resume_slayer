@@ -1,11 +1,9 @@
 """ Chains for improving a job experience section when it is not strong for a given job description / title """
+
 from langchain import LLMChain, PromptTemplate
 from langchain.chains import SequentialChain
 from langchain.chat_models import ChatOpenAI
-from langchain.memory import SimpleMemory
 from langchain.output_parsers import CommaSeparatedListOutputParser
-
-from util import job_requirement_chain
 
 
 def get_key_skill() -> LLMChain:
@@ -136,3 +134,23 @@ def process_history_chain() -> SequentialChain:
         input_variables=["title", "desc", "section"],
         output_variables=["formatted"],
         verbose=True,)
+
+
+def beef_chain() -> SequentialChain:
+    """ Improve a weak job experience section by emphasizing relevant skills
+
+    Inputs:
+    title: desired job title
+    desc: desired job description
+    requirements: desired job requirements. From `util.job_requirements_chain()`
+    section: job experience section from resume. metadata will NOT be formatted (ie: dates, job title, etc.)
+
+    Outputs:
+    Job experience section highlighting relevant job requirements
+    """
+    return SequentialChain(
+        chains=[get_key_skill(), highlight_chain()],
+        input_variables=["title", "desc", "section", "requirements"],
+        output_variables=["highlighted"],
+        verbose=True
+    )
