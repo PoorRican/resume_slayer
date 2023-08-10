@@ -13,7 +13,7 @@ class Skills(BaseModel):
     skills: List[str] = []
 
 
-def list_job_requirements(description: str) -> List[str]:
+def job_requirement_chain() -> LLMChain:
     """ Accepts job description. Returns list of skills """
     # Set up a parser + inject instructions into the prompt template.
     parser = PydanticOutputParser(pydantic_object=Skills)
@@ -27,8 +27,7 @@ def list_job_requirements(description: str) -> List[str]:
                             input_variables=["description"],
                             partial_variables={'format_instructions': format_instructions})
     llm = ChatOpenAI(temperature=0, model_name='gpt-3.5-turbo')
-    chain = LLMChain(prompt=prompt, llm=llm)
-    return parser.parse(chain.predict(description=description))
+    return LLMChain(prompt=prompt, llm=llm, output_parser=parser)
 
 
 def chunk_markdown(resume: str) -> List[Document]:
