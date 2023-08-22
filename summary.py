@@ -1,8 +1,20 @@
 # These chains are focused on improving the summary/overview section
 
+from pydantic import BaseModel
 from langchain import PromptTemplate, LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import SequentialChain
+from langchain.output_parsers import PydanticOutputParser, CommaSeparatedListOutputParser
+from typing import List, Set
+from util import relevant_skills_chain
+
+
+class Stories(BaseModel):
+    """ Class to store a list of stories as strings.
+
+    Parsing using `pydantic` has been implemented to avoid incidentally splitting strings that contain commas
+    """
+    stories: List[str] = []
 
 
 def improve_summary_chain() -> SequentialChain:
@@ -50,3 +62,118 @@ def improve_summary_chain() -> SequentialChain:
         input_variables=["section", "desc"],
         output_variables=["summarized"],
     )
+
+
+def extract_stories_chain() -> LLMChain:
+    parser = PydanticOutputParser(pydantic_object=Stories)
+    _format_instructions = parser.get_format_instructions()
+
+    prompt = PromptTemplate(
+        template="""
+        Extract {artifacts} from the following resume experience section that demonstrate {attribute}.
+        
+        Respond with 'None' for Python if there are no relevant {artifacts} to {attribute}.
+        
+        Here is the resume section (surrounded by ``):
+        
+        `{section}`
+        
+        {format_instructions}
+        """,
+        input_variables=["attribute", "section"],
+        partial_variables={
+            'format_instructions': _format_instructions,
+            'artifacts': 'stories',
+        })
+
+    return LLMChain(llm=ChatOpenAI(temperature=.2, model_name="gpt-3.5-turbo"),
+                    output_key='stories',
+                    prompt=prompt,
+                    output_parser=parser)
+
+
+def extract_three_things_chain() -> LLMChain:
+    """ Accepts job experience, returns list of three things recruiter should know about this job experience. """
+    parser = CommaSeparatedListOutputParser()
+    format_instructions = parser.get_format_instructions()
+
+    prompt = PromptTemplate(template="""
+    What are three things from the following job experience summary make this candidate stand out from the crowd to a job recruiter.
+
+    Here is the job experience summary (surrounded by ``):
+    `{section}`
+
+
+    {format_instructions}
+    """,
+                            input_variables=["section"],
+                            partial_variables={'format_instructions': format_instructions}
+                            )
+
+    llm = ChatOpenAI(temperature=.4, model_name='gpt-3.5-turbo')
+    return LLMChain(llm=llm, output_parser=parser, prompt=prompt, output_key='three_things')
+
+
+def generate_snippets(experiences: List[str], skills: List[str], description: str) -> Set[str]:
+    three_things_chain = extract_three_things_chain()
+    skills_chain = relevant_skills_chain()
+    stories_chain = extract_stories_chain()
+
+    snippets = []
+    for experience in experiences:
+        _three_things = three_things_chain({'section': experience})['three_things']
+        snippets.extend(_three_things)
+
+        # filter relevant skills to conserve usage
+        relevant_skills = skills_chain({'section': experience, 'attribute': skills})['skills']
+        for skill in relevant_skills:
+            _stories = stories_chain({'section': experience, 'desc': description, 'attribute': skill})
+            snippets.extend(_stories['stories'].stories)
+
+    return set(snippets)
+
+
+def generate_summary_chain() -> SequentialChain:
+    """ Chain that generates resume summary from candidate clauses """
+
+    llm = ChatOpenAI(temperature=0.4, model_name="gpt-3.5-turbo")
+
+    # Narrow down candidate clauses
+    top_snippets_prompt = PromptTemplate.from_template("""
+    We will be filtering a list of bullet points.
+    Out of the bullets, select the top 10 that will make the candidate stand out for the given job description.
+
+    The returned bullets should reflect the original content, and not be an excerpt from the job description.
+    Also, Return the top snippets as bullet points.
+
+    This is the job description (surrounded by ``):
+        `{desc}`
+
+    This is the list of candidate snippets (surrounded by ``):
+    `{snippets}`
+    """)
+    top_snippets_chain = LLMChain(prompt=top_snippets_prompt, llm=llm, output_key='refined_snippets')
+
+    summary_prompt = PromptTemplate.from_template("""
+    Using the given snippets, generate a brief resume summary as bullet points.
+
+    Here is a list of snippets (surrounded by ``):
+    `{refined_snippets}`
+    """)
+    summary_chain = LLMChain(prompt=summary_prompt, llm=llm, output_key='summary_overview')
+
+    refine_prompt = PromptTemplate.from_template("""
+    Refine the given list of bullet points to 3-5 main points so that it stands out to someone reading the given job
+    description.
+
+    Here is a list of bullet points (surrounded by ``):
+    `{summary_overview}`
+
+    Here is the job description (surrounded by ``):
+    `{desc}`
+    """)
+    refine_chain = LLMChain(prompt=refine_prompt, llm=llm, output_key='refined_overview')
+
+    return SequentialChain(chains=[top_snippets_chain, summary_chain, refine_chain],
+                           input_variables=['desc', 'snippets'],
+                           output_variables=['refined_overview'])
