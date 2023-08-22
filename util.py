@@ -67,7 +67,7 @@ def cut_sections(resume: str) -> dict:
     return resume_model
 
 
-def get_key_skill() -> LLMChain:
+def relevant_skills_chain() -> LLMChain:
     """ Extract skills relevant to job description from resume section.
 
     Inputs:

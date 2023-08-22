@@ -4,7 +4,7 @@ from langchain import LLMChain, PromptTemplate
 from langchain.chains import SequentialChain
 from langchain.chat_models import ChatOpenAI
 
-from util import get_key_skill
+from util import relevant_skills_chain
 
 
 def _summary_sentence_from_skills() -> LLMChain:
@@ -116,7 +116,7 @@ def beef_chain() -> SequentialChain:
     Job experience section highlighting relevant job requirements
     """
     return SequentialChain(
-        chains=[get_key_skill(), highlight_chain()],
+        chains=[relevant_skills_chain(), highlight_chain()],
         input_variables=["title", "desc", "section", "requirements"],
         output_variables=["highlighted"],
         verbose=True
