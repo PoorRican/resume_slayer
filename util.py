@@ -1,7 +1,7 @@
-from langchain import PromptTemplate
+from langchain import PromptTemplate, LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
-from langchain.output_parsers import PydanticOutputParser
+from langchain.output_parsers import PydanticOutputParser, CommaSeparatedListOutputParser
 from langchain.chains import LLMChain
 from langchain.text_splitter import MarkdownHeaderTextSplitter
 from pydantic import BaseModel
@@ -67,3 +67,35 @@ def cut_sections(resume: str) -> dict:
     return resume_model
 
 
+def get_key_skill() -> LLMChain:
+    """ Extract skills relevant to job description from resume section.
+
+    Inputs:
+    section: job history section from resume
+    requirements: list of requirements extracted from job description. eg: `util.job_requirements_chain()`
+
+    Outputs:
+    list of relevant skills mentioned in resume section
+    """
+    output_parser = CommaSeparatedListOutputParser()
+    format_instructions = output_parser.get_format_instructions()
+
+    prompt = PromptTemplate(template="""
+    You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
+    You will be given a list of required skills, and an excerpt from the client's resume.
+    What required 3 skills does the client have?
+    
+    Resume excerpt:\n\t{section}
+    
+    Required skills:\n\t{requirements}
+    
+    {format_instructions}
+    """,
+                            input_variables=['section', 'requirements'],
+                            partial_variables={'format_instructions': format_instructions}
+                            )
+    return LLMChain(prompt=prompt,
+                    llm=ChatOpenAI(temperature=.1,
+                                   model_name="gpt-3.5-turbo"),
+                    output_parser=output_parser,
+                    output_key='skills')
