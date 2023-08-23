@@ -1,7 +1,6 @@
 from langchain.schema import Document
 from typing import List
-
-from beef import beef_chain
+from history import generate_star_chain
 from summary import generate_snippets, generate_summary_chain
 from util import cut_sections, chunk_markdown, job_requirement_chain
 
@@ -35,15 +34,12 @@ class Slayer(object):
 
         # handle job experience sections
 
-        improve_summary = beef_chain()
+        improve_summary = generate_star_chain()
 
         experiences = self.experiences.copy()
         for experience in experiences:
-            _summary = improve_summary({"section": experience.page_content,
-                                        "title": self.title,
-                                        "desc": self.description,
-                                        "requirements": requirements})
-            experience.page_content = _summary['highlighted']
+            improved = improve_summary({"section": experience.page_content})
+            experience.page_content = improved['star']
 
         print('Overview:\n', overview)
         print('Experiences:\n', experiences)

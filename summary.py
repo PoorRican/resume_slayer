@@ -167,7 +167,7 @@ def generate_summary_chain() -> SequentialChain:
     summary_chain = LLMChain(prompt=summary_prompt, llm=llm, output_key='summary_overview')
 
     refine_prompt = PromptTemplate.from_template("""
-    Refine the given list of bullet points to 3-5 main points so that it stands out to someone reading the given job
+    Refine the given list of bullet points to 3-5 so that it stands out to someone reading the given job
     description.
 
     Here is a list of bullet points (surrounded by ``):
