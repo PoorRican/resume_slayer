@@ -94,15 +94,17 @@ def extract_stories_chain() -> LLMChain:
 
 def extract_three_things_chain() -> LLMChain:
     """ Accepts job experience, returns list of three things recruiter should know about this job experience. """
-    parser = CommaSeparatedListOutputParser()
+    parser = PydanticOutputParser(pydantic_object=Stories)
     format_instructions = parser.get_format_instructions()
 
     prompt = PromptTemplate(template="""
-    What are three things from the following job experience summary make this candidate stand out from the crowd to a job recruiter.
+    Extract 3 distinguishing statements from the following job experience summary that
+    make this candidate stand out from the crowd to a job recruiter.
+    
+    Statements should express a whole idea while remaining concise.
 
     Here is the job experience summary (surrounded by ``):
     `{section}`
-
 
     {format_instructions}
     """,
@@ -115,17 +117,18 @@ def extract_three_things_chain() -> LLMChain:
 
 
 def generate_snippets(experiences: List[str], skills: List[str], description: str) -> Set[str]:
+    """ Extract stories and statements from a list of job experiences """
     three_things_chain = extract_three_things_chain()
-    skills_chain = relevant_skills_chain()
+    _relevant_skills_chain = relevant_skills_chain()
     stories_chain = extract_stories_chain()
 
     snippets = []
     for experience in experiences:
-        _three_things = three_things_chain({'section': experience})['three_things']
+        _three_things = three_things_chain({'section': experience})['three_things'].stories
         snippets.extend(_three_things)
 
         # filter relevant skills to conserve usage
-        relevant_skills = skills_chain({'section': experience, 'attribute': skills})['skills']
+        relevant_skills = _relevant_skills_chain({'section': experience, 'requirements': skills})['skills']
         for skill in relevant_skills:
             _stories = stories_chain({'section': experience, 'desc': description, 'attribute': skill})
             snippets.extend(_stories['stories'].stories)
