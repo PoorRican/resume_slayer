@@ -43,7 +43,7 @@ class Slayer(object):
                                         "title": self.title,
                                         "desc": self.description,
                                         "requirements": requirements})
-            experience.page_content = _summary
+            experience.page_content = _summary['highlighted']
 
         print('Overview:\n', overview)
         print('Experiences:\n', experiences)
