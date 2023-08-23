@@ -34,6 +34,7 @@ def generate_star_chain() -> LLMChain:
     This is an example of a STAR statement:
     "Developed and applied a comprehensive document tracking system, ensuring that 100% of 5,500 promotion packages were
     updated, correct, and completed ahead of the Promotion Board deadline."
+    DO NOT use this example in the output for any reason.
 
 
     Here is the job experience section:
