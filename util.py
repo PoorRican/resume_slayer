@@ -56,14 +56,13 @@ def cut_sections(resume: str) -> dict:
     {resume}
     """)
 
-    resume_model = {'summary': {'section_name': 'resume summary',
-                                'result': ''},
-                    'history': {'section_name': 'job history / experience',
-                                'result': ''}}
+    section_names = ('resume summary', 'job history / experience')
+    resume_model = {'summary': '',
+                    'history': ''}
     classify_chain = LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo"))
-    for key in resume_model.keys():
-        resume_model[key]['result'] = classify_chain.predict(resume=resume,
-                                                             section_name=resume_model[key]['section_name'])
+    for name, key in zip(section_names, resume_model.keys()):
+        resume_model[key] = classify_chain.predict(resume=resume,
+                                                   section_name=name)
     return resume_model
 
 
