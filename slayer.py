@@ -1,32 +1,49 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain.schema import Document
+from typing import List
+
+from beef import beef_chain
+from summary import generate_snippets, generate_summary_chain
+from util import cut_sections, chunk_markdown, job_requirement_chain
 
 
 class Slayer(object):
-    resume: str
+    summary: str
+    experiences: List[Document]
     description: str
     title: str
     response: str
 
     def __init__(self, resume: str, description: str, title: str):
         super().__init__()
-        self.resume = resume
+
+        sections = cut_sections(resume)
+        self.summary = sections['summary']
+        self.experiences = chunk_markdown(sections['history'])
+
         self.description = description
         self.title = title
 
-    def predict(self) -> str:
-        chat_model = ChatOpenAI(temperature=.75, model_name="gpt-3.5-turbo")
-        system_message = SystemMessagePromptTemplate.from_template(
-            "You're an expert career consultant with an IQ over 140. Please rewrite my resume to exude"
-            "competence and clearly demonstrate how and why I am a perfect fit for the {job_title} position by"
-            "reusing keywords, phrases, and skills, and experience. Do not add anything that is not there, but expand"
-            "on anything that is in my resume. This is my current resume:\n{resume}")
-        job_desc_prompt = HumanMessagePromptTemplate.from_template("Here is the job description:\n{job_desc}")
-        chat_prompt = ChatPromptTemplate.from_messages([system_message, job_desc_prompt])
+    def process(self) -> None:
+        # chains should be executed asynchronously
 
-        messages = chat_prompt.format_prompt(resume=self.resume,
-                                             job_desc=self.description,
-                                             job_title=self.title).to_messages()
-        response = chat_model.predict_messages(messages)
-        self.response = str(response)
-        return self.response
+        requirements_chain = job_requirement_chain()
+        requirements = requirements_chain({'desc'})['requirements'].skills
+
+        # handle summary
+        snippets = generate_snippets(self.experiences, requirements, self.description)
+        overview = generate_summary_chain()({'snippets': snippets, 'desc': self.description})['refined_overview']
+
+        # handle job experience sections
+
+        improve_summary = beef_chain()
+
+        experiences = self.experiences.copy()
+        for experience in experiences:
+            _summary = improve_summary({"section": experience.page_content,
+                                        "title": self.title,
+                                        "desc": self.description,
+                                        "requirements": requirements})
+            experience.page_content = _summary
+
+        print('Overview:\n', overview)
+        print('Experiences:\n', experiences)
