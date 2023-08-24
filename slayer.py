@@ -38,7 +38,7 @@ class Slayer(object):
 
         experiences = self.experiences.copy()
         for experience in experiences:
-            improved = improve_summary({"section": experience.page_content})
+            improved = improve_summary({"section": experience.page_content, "requirements": requirements})
             experience.page_content = improved['star']
 
         print('Overview:\n', overview)

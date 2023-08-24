@@ -1,11 +1,12 @@
 """ Chains to improve job experience sections """
 
-from langchain.chains import LLMChain
+from langchain.chains import LLMChain, SequentialChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
+from util import relevant_skills_chain
 
 
-def generate_star_chain() -> LLMChain:
+def generate_star_chain() -> SequentialChain:
     """ Convert statements inside a job experience section to STAR statements.
 
     STAR = Situation, Task, Action, Result. LLMs seem to hallucinate to when a Result clause is not included in original
@@ -16,6 +17,7 @@ def generate_star_chain() -> LLMChain:
 
     # TODO: it might be profitable to fine-tune Result statements to emphasize key skills instead letting
     #  hallucination take ever
+    llm = ChatOpenAI(temperature=0.2, model_name='gpt-3.5-turbo')
 
     prompt = PromptTemplate(template="""
     You will be given a job experience section from a resume. Your task is to convert extract as many achievement
@@ -43,7 +45,11 @@ def generate_star_chain() -> LLMChain:
 
     The response should be a statement, and not S, T, A, R.
 
+    The Result clause of the statement should reflect {skills}
     """,
-                            input_variables=['section'])
-    return LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=0.2,
-                                                  model_name='gpt-3.5-turbo'), output_key='star')
+                            input_variables=['section', "skills"])
+    chain = LLMChain(prompt=prompt, output_key='star', llm=llm)
+
+    return SequentialChain(chains=[relevant_skills_chain(), chain],
+                           input_variables=["section", "requirements"],
+                           output_variables=["star"])
