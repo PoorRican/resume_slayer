@@ -102,13 +102,27 @@ def relevant_skills_chain() -> LLMChain:
 
 def structure_plaintext_chain() -> LLMChain:
     """ Add a resume markdown structure to plaintext """
-    llm = ChatOpenAI(temperature=.1, model_name="gpt-3.5-turbo-16k")
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
 
     prompt = PromptTemplate.from_template("""
     You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
-    Add markdown structure to this resume.
+    Add markdown structure to this plaintext resume.
     
     This is the resume:
+    {section}
+    """)
+    return LLMChain(prompt=prompt, llm=llm)
+
+
+def format_resume_chain() -> LLMChain:
+    """ Format the given text as a resume """
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+
+    prompt = PromptTemplate.from_template("""
+    You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
+    Format this resume text into a proper markdown document.
+    
+    This is the resume text:
     {section}
     """)
     return LLMChain(prompt=prompt, llm=llm)
