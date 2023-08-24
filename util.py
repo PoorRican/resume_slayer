@@ -1,4 +1,4 @@
-from langchain import PromptTemplate, LLMChain
+from langchain import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.output_parsers import PydanticOutputParser, CommaSeparatedListOutputParser
