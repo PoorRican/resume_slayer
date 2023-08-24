@@ -98,3 +98,17 @@ def relevant_skills_chain() -> LLMChain:
                                    model_name="gpt-3.5-turbo"),
                     output_parser=output_parser,
                     output_key='skills')
+
+
+def structure_plaintext_chain() -> LLMChain:
+    """ Add a resume markdown structure to plaintext """
+    llm = ChatOpenAI(temperature=.1, model_name="gpt-3.5-turbo-16k")
+
+    prompt = PromptTemplate.from_template("""
+    You're an expert career consultant with an IQ over 140 working with a special client regarding this job posting.
+    Add markdown structure to this resume.
+    
+    This is the resume:
+    {section}
+    """)
+    return LLMChain(prompt=prompt, llm=llm)
