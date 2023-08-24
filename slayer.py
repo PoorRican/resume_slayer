@@ -2,7 +2,7 @@ from langchain.schema import Document
 from typing import List
 from history import generate_star_chain
 from summary import generate_snippets, generate_summary_chain
-from util import cut_sections, chunk_markdown, job_requirement_chain
+from util import cut_sections, chunk_markdown, job_requirement_chain, format_resume_chain
 
 
 class Slayer(object):
@@ -22,7 +22,7 @@ class Slayer(object):
         self.description = description
         self.title = title
 
-    def process(self) -> None:
+    def process(self) -> str:
         # chains should be executed asynchronously
 
         requirements_chain = job_requirement_chain()
@@ -41,5 +41,11 @@ class Slayer(object):
             improved = improve_summary({"section": experience.page_content, "requirements": requirements})
             experience.page_content = improved['star']
 
-        print('Overview:\n', overview)
-        print('Experiences:\n', experiences)
+        result = ''
+        result += '# Overview\n' + str(overview) + '\n'
+
+        result += '# Experience\n'
+        for experience in experiences:
+            result += str(experience) + '\n'
+
+        return format_resume_chain()({'section': result})['text']
