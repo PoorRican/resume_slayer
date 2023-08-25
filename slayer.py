@@ -1,3 +1,4 @@
+import asyncio
 from langchain.schema import Document
 from typing import List
 from history import generate_star_chain
@@ -22,24 +23,30 @@ class Slayer(object):
         self.description = description
         self.title = title
 
-    def process(self) -> str:
+    async def _process_star(self, requirements: List[str]) -> List[Document]:
+        improve_summary = generate_star_chain()
+
+        _experiences = self.experiences.copy()
+        _tasks = [improve_summary.arun({"section": _experience.page_content,
+                                        "requirements": requirements}) for _experience in _experiences]
+        improved = await asyncio.gather(*_tasks)
+        for _experience, new_text in zip(_experiences, improved):
+            _experience.page_content = new_text
+        return _experiences
+
+    async def _process_summary(self, requirements: List[str]) -> str:
+        snippets = await generate_snippets(self.experiences, requirements, self.description)
+        return await generate_summary_chain().arun({'snippets': snippets, 'desc': self.description})
+
+    async def process(self) -> str:
         # chains should be executed asynchronously
 
         requirements_chain = job_requirement_chain()
-        requirements = requirements_chain({'desc'})['requirements'].skills
-
-        # handle summary
-        snippets = generate_snippets(self.experiences, requirements, self.description)
-        overview = generate_summary_chain()({'snippets': snippets, 'desc': self.description})['refined_overview']
+        requirements = requirements_chain.run({'desc'}).skills
 
         # handle job experience sections
-
-        improve_summary = generate_star_chain()
-
-        experiences = self.experiences.copy()
-        for experience in experiences:
-            improved = improve_summary({"section": experience.page_content, "requirements": requirements})
-            experience.page_content = improved['star']
+        overview, experiences = await asyncio.gather(self._process_summary(requirements),
+                                                     self._process_star(requirements))
 
         result = ''
         result += '# Overview\n' + str(overview) + '\n'

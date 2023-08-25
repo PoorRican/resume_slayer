@@ -1,4 +1,5 @@
 # These chains are focused on improving the summary/overview section
+import asyncio
 
 from pydantic import BaseModel
 from langchain import PromptTemplate, LLMChain
@@ -117,24 +118,32 @@ def extract_three_things_chain() -> LLMChain:
     return LLMChain(llm=llm, output_parser=parser, prompt=prompt, output_key='three_things')
 
 
-def generate_snippets(experiences: List[Union[Document | str]], skills: List[str], description: str) -> Set[str]:
+async def generate_snippets(experiences: List[Union[Document | str]], skills: List[str], description: str) -> Set[str]:
     """ Extract stories and statements from a list of job experiences """
     three_things_chain = extract_three_things_chain()
     _relevant_skills_chain = relevant_skills_chain()
     stories_chain = extract_stories_chain()
 
-    snippets = []
-    for experience in experiences:
-        _three_things = three_things_chain({'section': experience})['three_things'].stories
-        snippets.extend(_three_things)
+    async def _handle_three_things() -> List[str]:
+        tasks = [await three_things_chain.arun(i) for i in experiences]
+        stories = []
+        [stories.extend(i.stories) for i in tasks]
+        return stories
 
-        # filter relevant skills to conserve usage
-        relevant_skills = _relevant_skills_chain({'section': experience, 'requirements': skills})['skills']
-        for skill in relevant_skills:
-            _stories = stories_chain({'section': experience, 'desc': description, 'attribute': skill})
-            snippets.extend(_stories['stories'].stories)
+    async def _handle_stories() -> List[str]:
+        stories = []
+        for _experience in experiences:
+            relevant_skills = await _relevant_skills_chain.arun({'section': _experience, 'requirements': skills})
+            for skill in relevant_skills:
+                _stories = await stories_chain.arun({'section': _experience, 'desc': description, 'attribute': skill})
+                stories.extend(_stories.stories)
+        return stories
 
-    return set(snippets)
+    extracted_stories, extracted_three_things = await asyncio.gather(
+        _handle_stories(),
+        _handle_three_things()
+    )
+    return {*extracted_stories, *extracted_three_things}
 
 
 def generate_summary_chain() -> SequentialChain:
