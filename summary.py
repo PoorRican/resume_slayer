@@ -125,19 +125,26 @@ async def generate_snippets(experiences: List[Union[Document | str]], skills: Li
     stories_chain = extract_stories_chain()
 
     async def _handle_three_things() -> List[str]:
-        tasks = [await three_things_chain.arun(i) for i in experiences]
+        tasks = await asyncio.gather(*[three_things_chain.arun(i) for i in experiences])
         stories = []
         [stories.extend(i.stories) for i in tasks]
         return stories
 
     async def _handle_stories() -> List[str]:
-        stories = []
-        for _experience in experiences:
-            relevant_skills = await _relevant_skills_chain.arun({'section': _experience, 'requirements': skills})
-            for skill in relevant_skills:
-                _stories = await stories_chain.arun({'section': _experience, 'desc': description, 'attribute': skill})
-                stories.extend(_stories.stories)
-        return stories
+        relevant_skills = await asyncio.gather(*[
+            _relevant_skills_chain.arun({'section': i,
+                                         'requirements': skills}) for i in experiences])
+
+        tasks = []
+        for _experience, experience_skills in zip(experiences, relevant_skills):
+            for skill in experience_skills:
+                task = stories_chain.arun({'section': _experience, 'desc': description, 'attribute': skill})
+                tasks.append(task)
+        stories = await asyncio.gather(*tasks)
+        sub_stories = []
+        for i in stories:
+            sub_stories.extend(i.stories)
+        return sub_stories
 
     extracted_stories, extracted_three_things = await asyncio.gather(
         _handle_stories(),

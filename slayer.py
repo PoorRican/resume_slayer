@@ -44,7 +44,7 @@ class Slayer(object):
         requirements_chain = job_requirement_chain()
         requirements = requirements_chain.run({'desc'}).skills
 
-        # handle job experience sections
+        # improve resume sections
         overview, experiences = await asyncio.gather(self._process_summary(requirements),
                                                      self._process_star(requirements))
 
