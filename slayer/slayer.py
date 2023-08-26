@@ -1,9 +1,10 @@
 import asyncio
 from langchain.schema import Document
 from typing import List
-from history import generate_star_chain
-from summary import generate_snippets, generate_summary_chain
-from util import cut_sections, chunk_markdown, job_requirement_chain, format_resume_chain
+
+from .history import generate_star_chain
+from .summary import generate_snippets, generate_summary_chain
+from .util import cut_sections, chunk_markdown, job_requirement_chain, format_resume_chain
 
 
 class Slayer(object):

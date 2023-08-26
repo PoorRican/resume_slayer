@@ -3,7 +3,8 @@
 from langchain.chains import LLMChain, SequentialChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
-from util import relevant_skills_chain
+
+from .util import relevant_skills_chain
 
 
 def generate_star_chain() -> SequentialChain:

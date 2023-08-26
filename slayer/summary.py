@@ -8,7 +8,8 @@ from langchain.chains import SequentialChain
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema import Document
 from typing import List, Set, Union
-from util import relevant_skills_chain
+
+from .util import relevant_skills_chain
 
 
 class Stories(BaseModel):
@@ -118,7 +119,7 @@ def extract_three_things_chain() -> LLMChain:
     return LLMChain(llm=llm, output_parser=parser, prompt=prompt, output_key='three_things')
 
 
-async def generate_snippets(experiences: List[Union[Document | str]], skills: List[str], description: str) -> Set[str]:
+async def generate_snippets(experiences: List[Union[Document, str]], skills: List[str], description: str) -> Set[str]:
     """ Extract stories and statements from a list of job experiences """
     three_things_chain = extract_three_things_chain()
     _relevant_skills_chain = relevant_skills_chain()
