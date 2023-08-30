@@ -5,3 +5,4 @@ pydantic==1.10.12
 asyncio
 fastapi
 uvicorn
+markdown==3.4.4
