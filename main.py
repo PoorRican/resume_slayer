@@ -25,4 +25,5 @@ class ResumeRequest(BaseModel):
 async def process(request: ResumeRequest):
     slayer = Slayer(request.resume, request.description, request.title)
     md = await slayer.process()
+    md = md.replace('\n', '')
     return {"data": markdown(md, output_format='html')}
