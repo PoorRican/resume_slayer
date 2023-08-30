@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from slayer import Slayer
-from markdown import markdown
 
 
 app = FastAPI()
@@ -25,5 +24,4 @@ class ResumeRequest(BaseModel):
 async def process(request: ResumeRequest):
     slayer = Slayer(request.resume, request.description, request.title)
     md = await slayer.process()
-    md = md.replace('\n', '')
-    return {"data": markdown(md, output_format='html')}
+    return md
