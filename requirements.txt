@@ -6,3 +6,4 @@ asyncio
 fastapi
 uvicorn
 markdown==3.4.4
+supabase==1.0.4
