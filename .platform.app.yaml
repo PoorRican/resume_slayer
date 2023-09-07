@@ -24,8 +24,13 @@ disk: 2048
 
 hooks:
     build: |
-      pipenv install --system --deploy
+      set -eu
 
+      # Download the latest version of pip
+      python -m pip install --upgrade pip
+
+      # Install dependencies
+      pip install -r requirements.txt
 web:
   commands: 
     start: "python -m uvicorn main:app --reload"
