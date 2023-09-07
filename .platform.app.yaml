@@ -9,16 +9,6 @@ name: resume_slayer
 # to find the supported versions for the 'python' type.
 type: 'python:3.11'
 
-# The following block defines a single writable directory, 'web/uploads'
-# The 'source' specifies where the writable mount is. The 'local' source
-# indicates that the mount point will point to a local directory on the
-# application container. The 'source_path' specifies the subdirectory
-# from within the source that the mount should point at. 
-mounts:
-  'web/uploads':
-    source: local
-    source_path: uploads
-
 # The size of the persistent disk of the application (in MB).
 disk: 2048
 
@@ -26,21 +16,12 @@ hooks:
     build: |
       set -eu
 
-      # Download the latest version of pip
-      python -m pip install --upgrade pip
-
-      # Install dependencies
       pip install -r requirements.txt
 web:
   commands: 
-    start: "python -m uvicorn main:app --host 0.0.0.0 --port 80"
-  upstream:
-    socket_family: tcp
-    protocol: http
+    start: "python -m uvicorn main:app --port $PORT"
   locations:
-    '/ws':
+    '/':
       passthru: true
       request_buffering:
         enabled: false
-    '/':
-      passthru: true
