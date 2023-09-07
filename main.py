@@ -15,7 +15,7 @@ supabase: Client = create_client(url, key)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -116,3 +116,8 @@ async def process_websocket(websocket: WebSocket):
             .execute()
 
         await websocket.close()
+
+
+@app.get('/test')
+def test_page():
+    return "Test Successful"
