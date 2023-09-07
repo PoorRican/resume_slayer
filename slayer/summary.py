@@ -1,7 +1,7 @@
 # These chains are focused on improving the summary/overview section
 import asyncio
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from langchain import PromptTemplate, LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import SequentialChain
