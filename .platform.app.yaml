@@ -33,7 +33,7 @@ hooks:
       pip install -r requirements.txt
 web:
   commands: 
-    start: "python -m uvicorn main:app --reload"
+    start: "python -m uvicorn main:app --host 0.0.0.0 --port 80"
   upstream:
     socket_family: tcp
     protocol: http
