@@ -1,8 +1,9 @@
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import BackgroundTasks, FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from slayer import Slayer
+from time import sleep
 from uuid import uuid4
 from supabase import create_client, Client
 
@@ -76,3 +77,42 @@ async def process(request: ResumeRequest, background_tasks: BackgroundTasks):
     job_id = str(uuid4())  # Generate a unique job ID
     background_tasks.add_task(process_resume_request, job_id, request)
     return job_id
+
+
+@app.websocket("/ws")
+async def process_websocket(websocket: WebSocket):
+    """ Process incoming data """
+    await websocket.accept()
+
+    while True:
+        # Receive data from the WebSocket connection
+        resume = await websocket.receive_text()
+        title = await websocket.receive_text()
+        description = await websocket.receive_text()
+
+        # generate unique id's
+        job_id = str(uuid4())  # Generate a unique job ID
+        resume_id = str(uuid4())  # Generate a unique job ID
+
+        supabase \
+            .table('Resumes') \
+            .insert({"id": resume_id, "text": resume}) \
+            .execute()
+        supabase \
+            .table('Jobs') \
+            .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
+            .execute()
+
+        slayer = Slayer(resume, description, title)
+        md = await slayer.process()
+
+        # Send a response back to the WebSocket connection
+        await websocket.send_text(md)
+
+        supabase \
+            .table('Jobs') \
+            .update({"processed": md}) \
+            .eq("id", job_id) \
+            .execute()
+
+        await websocket.close()
