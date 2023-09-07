@@ -38,7 +38,9 @@ web:
     socket_family: tcp
     protocol: http
   locations:
-    '/':
+    '/ws':
       passthru: true
       request_buffering:
         enabled: false
+    '/':
+      passthru: true

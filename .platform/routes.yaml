@@ -4,3 +4,7 @@
     upstream: "resume_slayer:http"
     cache:
       enabled: false
+
+"https://{default}/":
+  type: upstream
+  upstream: "resume_slayer:http"
