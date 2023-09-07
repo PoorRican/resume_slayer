@@ -1,13 +1,15 @@
 # These chains are focused on improving the summary/overview section
+import asyncio
 
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from langchain import PromptTemplate, LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import SequentialChain
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema import Document
 from typing import List, Set, Union
-from util import relevant_skills_chain
+
+from .util import relevant_skills_chain
 
 
 class Stories(BaseModel):
@@ -117,24 +119,39 @@ def extract_three_things_chain() -> LLMChain:
     return LLMChain(llm=llm, output_parser=parser, prompt=prompt, output_key='three_things')
 
 
-def generate_snippets(experiences: List[Union[Document | str]], skills: List[str], description: str) -> Set[str]:
+async def generate_snippets(experiences: List[Union[Document, str]], skills: List[str], description: str) -> Set[str]:
     """ Extract stories and statements from a list of job experiences """
     three_things_chain = extract_three_things_chain()
     _relevant_skills_chain = relevant_skills_chain()
     stories_chain = extract_stories_chain()
 
-    snippets = []
-    for experience in experiences:
-        _three_things = three_things_chain({'section': experience})['three_things'].stories
-        snippets.extend(_three_things)
+    async def _handle_three_things() -> List[str]:
+        tasks = await asyncio.gather(*[three_things_chain.arun(i) for i in experiences])
+        stories = []
+        [stories.extend(i.stories) for i in tasks]
+        return stories
 
-        # filter relevant skills to conserve usage
-        relevant_skills = _relevant_skills_chain({'section': experience, 'requirements': skills})['skills']
-        for skill in relevant_skills:
-            _stories = stories_chain({'section': experience, 'desc': description, 'attribute': skill})
-            snippets.extend(_stories['stories'].stories)
+    async def _handle_stories() -> List[str]:
+        relevant_skills = await asyncio.gather(*[
+            _relevant_skills_chain.arun({'section': i,
+                                         'requirements': skills}) for i in experiences])
 
-    return set(snippets)
+        tasks = []
+        for _experience, experience_skills in zip(experiences, relevant_skills):
+            for skill in experience_skills:
+                task = stories_chain.arun({'section': _experience, 'desc': description, 'attribute': skill})
+                tasks.append(task)
+        stories = await asyncio.gather(*tasks)
+        sub_stories = []
+        for i in stories:
+            sub_stories.extend(i.stories)
+        return sub_stories
+
+    extracted_stories, extracted_three_things = await asyncio.gather(
+        _handle_stories(),
+        _handle_three_things()
+    )
+    return {*extracted_stories, *extracted_three_things}
 
 
 def generate_summary_chain() -> SequentialChain:

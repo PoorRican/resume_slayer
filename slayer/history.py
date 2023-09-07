@@ -3,7 +3,8 @@
 from langchain.chains import LLMChain, SequentialChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
-from util import relevant_skills_chain
+
+from .util import relevant_skills_chain
 
 
 def generate_star_chain() -> SequentialChain:
@@ -20,7 +21,7 @@ def generate_star_chain() -> SequentialChain:
     llm = ChatOpenAI(temperature=0.2, model_name='gpt-3.5-turbo')
 
     prompt = PromptTemplate(template="""
-    You will be given a job experience section from a resume. Your task is to convert extract as many achievement
+    You will be given a job experience section from a resume. Your task is to generate as many achievement
     statements as possible using the STAR method.
 
 

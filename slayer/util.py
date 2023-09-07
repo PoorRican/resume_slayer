@@ -4,7 +4,7 @@ from langchain.schema import Document
 from langchain.output_parsers import PydanticOutputParser, CommaSeparatedListOutputParser
 from langchain.chains import LLMChain
 from langchain.text_splitter import MarkdownHeaderTextSplitter
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from typing import List
 
 

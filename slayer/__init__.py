@@ -1,0 +1,2 @@
+from .slayer import Slayer
+

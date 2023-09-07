@@ -4,7 +4,7 @@ from langchain import LLMChain, PromptTemplate
 from langchain.chains import SequentialChain
 from langchain.chat_models import ChatOpenAI
 
-from util import relevant_skills_chain
+from .util import relevant_skills_chain
 
 
 def _summary_sentence_from_skills() -> LLMChain:
