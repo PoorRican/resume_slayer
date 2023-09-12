@@ -11,13 +11,12 @@ Responsibilities
 - Write well-structured and documented code
 - Continuously update and expand our products
 
-
 Qualifications
 
 - 5+ years of experience building complex web applications using Python, Django, React, Snowflake or similar
 - Hands-on experience designing software and breaking down complexity using software engineering principles
 - Great team member who contributes to our culture and our business
- - Takes ownership and demands excellence from themselves and others
+- Takes ownership and demands excellence from themselves and others
 - Likes a fast paced environment and is a quick learner
 - Results-driven and can prioritize activities with the greatest impact
 - Proven track record of excellence
