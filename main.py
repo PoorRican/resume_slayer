@@ -1,4 +1,5 @@
 from fastapi import BackgroundTasks, FastAPI, WebSocket
+from starlette.websockets import WebSocketState
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -85,7 +86,7 @@ async def process_websocket(websocket: WebSocket):
     """ Process incoming data """
     await websocket.accept()
 
-    while True:
+    while websocket.application_state == WebSocketState.CONNECTED:
         # Receive data from the WebSocket connection
         resume = await websocket.receive_text()
         title = await websocket.receive_text()

@@ -7,3 +7,4 @@ fastapi~=0.102.0
 uvicorn
 markdown==3.4.4
 supabase==1.0.4
+starlette~=0.27.0
