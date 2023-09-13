@@ -108,7 +108,9 @@ async def process_websocket(websocket: WebSocket, test_option: str = None):
         job_id = str(uuid4())  # Generate a unique job ID
         resume_id = str(uuid4())  # Generate a unique job ID
 
-        if not test:
+        md = ""
+
+        if not (test or crash):
             supabase \
                 .table('Resumes') \
                 .insert({"id": resume_id, "text": resume}) \
@@ -127,10 +129,14 @@ async def process_websocket(websocket: WebSocket, test_option: str = None):
                 .eq("id", job_id) \
                 .execute()
 
-        else:
+        elif test:
             # allow for test to detect progress component
             sleep(1)
             md = "Correct websocket sequence received"
+
+        elif crash:
+            sleep(1)
+            raise BrokenPipeError("Simulated Crash")
 
         # Send a response back to the WebSocket connection
         await websocket.send_text(md)
