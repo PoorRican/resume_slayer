@@ -7,6 +7,27 @@ from slayer import Slayer
 from time import sleep
 from uuid import uuid4
 from supabase import create_client, Client
+import sentry_sdk
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+
+
+sentry_sdk.init(
+    dsn="https://9824daa8d5f096bb22ddc91e11889185@o4505875278528512.ingest.sentry.io/4505875283181568",
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production,
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to capture 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production,
+    profiles_sample_rate=1.0,
+    integrations=[
+        StarletteIntegration(transaction_style="endpoint"),
+        FastApiIntegration(transaction_style="endpoint"),
+    ],
+)
 
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
