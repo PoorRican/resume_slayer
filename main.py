@@ -139,7 +139,7 @@ async def process_websocket(websocket: WebSocket, test_option: str = None):
                 sleep(1)
                 raise BrokenPipeError("Simulated Crash")
         except Exception as e:
-            md = str(e)
+            md = repr(e)
 
         # Send a response back to the WebSocket connection
         await websocket.send_text(md)
