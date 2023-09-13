@@ -81,8 +81,8 @@ async def process(request: ResumeRequest, background_tasks: BackgroundTasks):
     return job_id
 
 
-@app.websocket("/ws")
-async def process_websocket(websocket: WebSocket):
+@app.websocket("/ws/{test}")
+async def process_websocket(websocket: WebSocket, test: bool = False):
     """ Process incoming data """
     await websocket.accept()
 
@@ -96,26 +96,32 @@ async def process_websocket(websocket: WebSocket):
         job_id = str(uuid4())  # Generate a unique job ID
         resume_id = str(uuid4())  # Generate a unique job ID
 
-        supabase \
-            .table('Resumes') \
-            .insert({"id": resume_id, "text": resume}) \
-            .execute()
-        supabase \
-            .table('Jobs') \
-            .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
-            .execute()
+        if not test:
+            supabase \
+                .table('Resumes') \
+                .insert({"id": resume_id, "text": resume}) \
+                .execute()
+            supabase \
+                .table('Jobs') \
+                .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
+                .execute()
 
-        slayer = Slayer(resume, description, title)
-        md = await slayer.process()
+            slayer = Slayer(resume, description, title)
+            md = await slayer.process()
+
+            supabase \
+                .table('Jobs') \
+                .update({"processed": md}) \
+                .eq("id", job_id) \
+                .execute()
+
+        else:
+            # allow for test to detect progress component
+            sleep(1)
+            md = "Correct websocket sequence received"
 
         # Send a response back to the WebSocket connection
         await websocket.send_text(md)
-
-        supabase \
-            .table('Jobs') \
-            .update({"processed": md}) \
-            .eq("id", job_id) \
-            .execute()
 
         await websocket.close()
 
