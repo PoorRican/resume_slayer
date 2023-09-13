@@ -81,6 +81,7 @@ async def process(request: ResumeRequest, background_tasks: BackgroundTasks):
     return job_id
 
 
+@app.websocket("/ws")
 @app.websocket("/ws/{test_option}")
 async def process_websocket(websocket: WebSocket, test_option: str = None):
     """ Process incoming data """
