@@ -12,12 +12,11 @@ url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
-
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000",
-                   '*-poorrican.vercel.app'],
+                   'https://resume-slayer-*-poorrican.vercel.app'],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,8 +81,21 @@ async def process(request: ResumeRequest, background_tasks: BackgroundTasks):
 
 
 @app.websocket("/ws")
-async def process_websocket(websocket: WebSocket):
+@app.websocket("/ws/{test_option}")
+async def process_websocket(websocket: WebSocket, test_option: str = None):
     """ Process incoming data """
+
+    test = False
+    crash = False
+
+    if test_option:
+        if test_option == "bypass":
+            test = True
+        elif test_option == "crash":
+            crash = True
+        else:
+            raise ValueError("Incorrect GET arguments for `test_option`")
+
     await websocket.accept()
 
     while websocket.application_state == WebSocketState.CONNECTED:
@@ -91,31 +103,46 @@ async def process_websocket(websocket: WebSocket):
         resume = await websocket.receive_text()
         title = await websocket.receive_text()
         description = await websocket.receive_text()
-
         # generate unique id's
         job_id = str(uuid4())  # Generate a unique job ID
         resume_id = str(uuid4())  # Generate a unique job ID
 
-        supabase \
-            .table('Resumes') \
-            .insert({"id": resume_id, "text": resume}) \
-            .execute()
-        supabase \
-            .table('Jobs') \
-            .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
-            .execute()
+        md = ""
 
-        slayer = Slayer(resume, description, title)
-        md = await slayer.process()
+        # noinspection PyBroadException
+        try:
+            if not (test or crash):
+                supabase \
+                    .table('Resumes') \
+                    .insert({"id": resume_id, "text": resume}) \
+                    .execute()
+                supabase \
+                    .table('Jobs') \
+                    .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
+                    .execute()
+
+                slayer = Slayer(resume, description, title)
+                md = await slayer.process()
+
+                supabase \
+                    .table('Jobs') \
+                    .update({"processed": md}) \
+                    .eq("id", job_id) \
+                    .execute()
+
+            elif test:
+                # allow for test to detect progress component
+                sleep(1)
+                md = "Correct websocket sequence received"
+
+            elif crash:
+                sleep(1)
+                raise BrokenPipeError("Simulated Crash")
+        except Exception as e:
+            md = repr(e)
 
         # Send a response back to the WebSocket connection
         await websocket.send_text(md)
-
-        supabase \
-            .table('Jobs') \
-            .update({"processed": md}) \
-            .eq("id", job_id) \
-            .execute()
 
         await websocket.close()
 
