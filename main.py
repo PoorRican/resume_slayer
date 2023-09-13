@@ -7,7 +7,6 @@ from slayer import Slayer
 from time import sleep
 from uuid import uuid4
 from supabase import create_client, Client
-from typing import Union
 
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
