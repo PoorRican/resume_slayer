@@ -1,4 +1,5 @@
 from fastapi import BackgroundTasks, FastAPI, WebSocket
+from starlette.websockets import WebSocketState
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -15,7 +16,8 @@ supabase: Client = create_client(url, key)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", ],
+    allow_origins=["http://localhost:3000",
+                   '*-poorrican.vercel.app'],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -84,7 +86,7 @@ async def process_websocket(websocket: WebSocket):
     """ Process incoming data """
     await websocket.accept()
 
-    while True:
+    while websocket.application_state == WebSocketState.CONNECTED:
         # Receive data from the WebSocket connection
         resume = await websocket.receive_text()
         title = await websocket.receive_text()

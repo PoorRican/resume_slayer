@@ -1,9 +1,10 @@
-langchain==0.0.283
-openai==0.27.9
+langchain==0.0.286
+openai==0.28.0
 jupyter
 pydantic==2.3.0
-asyncio
-fastapi
+asyncio~=3.4.3
+fastapi~=0.102.0
 uvicorn
 markdown==3.4.4
 supabase==1.0.4
+starlette~=0.27.0
