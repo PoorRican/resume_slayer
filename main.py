@@ -7,6 +7,7 @@ from slayer import Slayer
 from time import sleep
 from uuid import uuid4
 from supabase import create_client, Client
+from typing import Union
 
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
@@ -81,9 +82,21 @@ async def process(request: ResumeRequest, background_tasks: BackgroundTasks):
     return job_id
 
 
-@app.websocket("/ws/{test}")
-async def process_websocket(websocket: WebSocket, test: bool = False):
+@app.websocket("/ws/{test_option}")
+async def process_websocket(websocket: WebSocket, test_option: str = None):
     """ Process incoming data """
+
+    test = False
+    crash = False
+
+    if test_option:
+        if test_option == "bypass":
+            test = True
+        elif test_option == "crash":
+            crash = True
+        else:
+            raise ValueError("Incorrect GET arguments for `test_option`")
+
     await websocket.accept()
 
     while websocket.application_state == WebSocketState.CONNECTED:
@@ -91,7 +104,6 @@ async def process_websocket(websocket: WebSocket, test: bool = False):
         resume = await websocket.receive_text()
         title = await websocket.receive_text()
         description = await websocket.receive_text()
-
         # generate unique id's
         job_id = str(uuid4())  # Generate a unique job ID
         resume_id = str(uuid4())  # Generate a unique job ID
