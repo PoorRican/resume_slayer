@@ -13,7 +13,6 @@ url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
-
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -110,33 +109,37 @@ async def process_websocket(websocket: WebSocket, test_option: str = None):
 
         md = ""
 
-        if not (test or crash):
-            supabase \
-                .table('Resumes') \
-                .insert({"id": resume_id, "text": resume}) \
-                .execute()
-            supabase \
-                .table('Jobs') \
-                .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
-                .execute()
+        # noinspection PyBroadException
+        try:
+            if not (test or crash):
+                supabase \
+                    .table('Resumes') \
+                    .insert({"id": resume_id, "text": resume}) \
+                    .execute()
+                supabase \
+                    .table('Jobs') \
+                    .insert({"id": job_id, "title": title, "description": description, "resume": resume_id}) \
+                    .execute()
 
-            slayer = Slayer(resume, description, title)
-            md = await slayer.process()
+                slayer = Slayer(resume, description, title)
+                md = await slayer.process()
 
-            supabase \
-                .table('Jobs') \
-                .update({"processed": md}) \
-                .eq("id", job_id) \
-                .execute()
+                supabase \
+                    .table('Jobs') \
+                    .update({"processed": md}) \
+                    .eq("id", job_id) \
+                    .execute()
 
-        elif test:
-            # allow for test to detect progress component
-            sleep(1)
-            md = "Correct websocket sequence received"
+            elif test:
+                # allow for test to detect progress component
+                sleep(1)
+                md = "Correct websocket sequence received"
 
-        elif crash:
-            sleep(1)
-            raise BrokenPipeError("Simulated Crash")
+            elif crash:
+                sleep(1)
+                raise BrokenPipeError("Simulated Crash")
+        except:
+            md = str()
 
         # Send a response back to the WebSocket connection
         await websocket.send_text(md)
